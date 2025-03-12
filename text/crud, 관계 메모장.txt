@@ -1,0 +1,97 @@
+2- 요약
+1:N 관계 설정
+    post = models.ForeignKey(Post, on_delete=models.CASCADE)
+Model 에서 필드 설정할 때 ForeignKey 로 설정
+부모-자식관계
+지금은 comment 가 post 를 참조하고있음
+post 가 부모 comment 가 자식
+자식이 부모를 참조할땐
+comment = Comment.objects.first()
+comment.post 로 부모에 접근(외래키로 설정해놓았음)
+
+3-요약
+부모가 자식을 참조할 땐
+post = Post.objects.first()
+post.comment_set 으로 자식에 접근
+여기서 comment_set 은 ORM 이 자동 생성
+'자식 모델의 첫글자 소문자_set'
+
+4-요약
+static 파일 가져오기
+1. settings.py 에서
+STATIC_URL = 'static/'
+STATICFILES_DIRS = [BASE_DIR / 'static']
+2. import 해올 html 파일의 최상단에
+{% load static %}
+3. 바로 밑의 head 하위에
+<link rel="stylesheet" href="{% static 'css/style.css' %}">
+{% static '경로' %} 를 써야함
+여기서 경로는 static 을 기준으로 써야함
+
+5-요약
+미디어 파일 관련
+모델의 필드에 추가
+이것은 원본 그대로 blank=True 는 이 필드가 필수가 아님을 뜻함
+thumbnail = models.ImageField("원본 이미지", upload_to="post", blank=True)
+미디어 경로 설정, 및 라우팅 설정
+settings.py 에서
+MEDIA_URL = 'media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+urls.py 에서
+urlpatterns += static(
+    # URL의 접두어가 MEDIA_URL 일 때는 정적파일을 돌려준다.
+    # settings.py 에서 설정했음
+    prefix=settings.MEDIA_URL,
+    # 돌려줄 디렉터리는 MEDIA_ROOT 를 기준으로 한다.
+    # 마찬가지로 settings.py 에서 설정했음
+    document_root=settings.MEDIA_ROOT
+)
+마지막으로 templates에서
+<img src="{{post.thumbnail.url}}" alt="" >
+소스를 이렇게 쉽게 쓸 수 있음
+  {% if post.thumbnail %}
+                    <img src="{{post.thumbnail.url}}" alt="" >
+                {% else %}
+                    <img src="" alt="">
+                {% endif %}
+이런식으로 thumbnail 유무 필터링 가능
+이런게 가능한 ImageField 의 속성들
+post.thumbnail : 파일 반환
+post.thumbnail.name : 이름 반환
+post.thumbnail.path : 절대 경로 반환
+post.thumbnail.size : 크기 반환
+post.thumbnail.url : url 경로 반환
+마지막으로 중요한것
+admin.py 에서 postAdmin 클래스에
+    list_display = ['title', 'thumbnail']
+를 추가하면 post 의 title 필드와 thumbnail 필드를 같이 보여줌
+
+6- 요약
+url.py 에서 route 지정 시 <자료형:매개변수이름> 을 사용해서 받고
+예시 <int:post_id>
+views.py 에서 매개변수를 추가한 다음
+매개변수로 이것저것 작업을 하고 그 결과를
+context 에 담아 templates 에 보냄
+예시 context = {'post': Post.objects.get(id=post_id)}
+
+7- 요약
+spring 과 똑같이
+form 으로 서버에 데이터 보냄
+name 으로 지정하고 value 로 값
+form method="post"
+csrf
+브라우저별로 구분되는 값, html이 클라이언트에서 그려진 후 확인되므로 해킹 방지
+    {% csrf_token %}
+브라우저에서 확인해보면
+<input type="hidden" name="csrfmiddlewaretoken" value="VFEsbwPN9SsExQ1IQAaItKMtELNLdoA2yblvdWa6hPZiTM7lGKGoJwE5G6wATun9">
+이렇게 표시
+이제 브라우저에서 서버로 post 요청은 보냈으니
+view 에서 받아야 함
+view.py에서 request.method 로 post 확인
+request.POST['name값'] 으로 value 받기
+Post.objects.create(title=title, content=content)
+모델.objects.create() 로 새 객체 만들기
+redirect 로 post spam 방지
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!주의!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+templates 에서 서버로 보내는 form 에선 input type="file" 로 보내도 되지만
+view 에서 받을 땐 request.POST 로 받는것이 아니라 request.FILES 로 받아야 함
